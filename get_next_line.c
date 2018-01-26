@@ -5,7 +5,7 @@
 ** get a line and go to the next one
 */
 
-#include "get_next_line.h"
+#include "my.h"
 
 char	*my_realloc(char *src, int size)
 {
@@ -19,32 +19,31 @@ char	*my_realloc(char *src, int size)
 		tmp[i] = src[i];
 		++i;
 	}
+	src[i] = '\0';
 	free(src);
 	return (tmp);
 }
 
-char	*first_use(int	*ret, int *begin, int fd, char *buff)
+static char	*first_use(int	*ret, int *begin, int fd, char *buff)
 {
-	if (*begin == 0) {
-		if ((buff = malloc(sizeof(char) * (READ_SIZE + 1))) == NULL) {
-			return (NULL);
-		}
-		if ((*ret = read(fd, buff, READ_SIZE)) == -1) {
-			return (NULL);
-		}
-		buff[*ret] = '\0';
-		*begin = 1;
+	if ((buff = malloc(sizeof(char) * (READ_SIZE + 1))) == NULL) {
+		return (NULL);
 	}
+	if ((*ret = read(fd, buff, READ_SIZE)) == -1) {
+		return (NULL);
+	}
+	buff[*ret] = '\0';
+	*begin = 1;
 	return (buff);
 }
 
-char	*other_uses(int *ret, int *i, char **buff, char *dest, int fd)
+static char	*other_uses(int *ret, int *i, char **buff, char *dest, int fd)
 {
 	int	j = 0;
 	int	len = READ_SIZE;
 
-	while ((*buff)[*i] != '\n' && *ret != 0) {
-		if ((*buff)[*i] != '\0') {
+	while ((*buff)[*i] != '\n' && *ret) {
+		if ((*buff)[*i]) {
 			dest[j] = (*buff)[*i];
 			++*i;
 			++j;
@@ -52,6 +51,7 @@ char	*other_uses(int *ret, int *i, char **buff, char *dest, int fd)
 			if ((*ret = read(fd, *buff, READ_SIZE)) == -1)
 				return (NULL);
 			(*buff)[*ret] = '\0';
+			dest[j] = '\0';
 			*i = 0;
 			len += *ret;
 			if ((dest = my_realloc(dest, len)) == NULL)
@@ -72,9 +72,11 @@ char	*get_next_line(int fd)
 
 	if (dest == NULL)
 		return (NULL);
-	if ((buff = first_use(&ret, &begin, fd, buff)) == NULL)
-		return (NULL);
-	dest[ret] = '\0';
+	if (begin == 0) {
+		if ((buff = first_use(&ret, &begin, fd, buff)) == NULL)
+			return (NULL);
+		buff[ret] = '\0';
+	}
 	if ((dest = other_uses(&ret, &i, &buff, dest, fd)) == NULL)
 		return (NULL);
 	++i;
